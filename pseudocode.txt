@@ -1,0 +1,128 @@
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Deduper - Pseudocode - Susan Collins
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+PROBLEM:
+
+    • Need to remove PCR duplicates from SAM file
+    • Cannot load everything into memory
+    • Need to account for soft clipping
+    • PCR duplicates will have matching: UMI, chromosome, position, strand
+
+
+USEFUL OUTPUT:
+
+    • Deduped SAM file containing only the first encountered read of duplicates
+    • If script is not capable of dealing with paired-end data, output an error message and quit
+    • File containing discarded reads with UMI errors
+    • File containing discarded duplicates
+
+--------
+TO CODE:
+--------
+
+import samtools
+import re
+
+------------------------------------------
+
+def get_args():
+"""adds argparse arguments to run script from the command line"""
+
+    • Add argument to input file (required)
+    • Add argument to selected paired-end (optional) - *to add later on as challenge*
+    • Add argument to input file containing UMI list (optional)
+    • Add argument to print useful help message (optional)
+
+    return parser.args()
+
+• if paired-end is selected and script is not capable of handling, print error message 
+
+---------------------------------------------
+
+• sort input file using samtools sort
+• set output file path equal to variable named "sorted_sam"
+
+---------------------------------------------
+
+def create_umi_dict(umi_file):
+"""Populates a dictionary with UMIs as keys and 0 as values, using a file containing UMI sequences"""
+    •initialize empty dictionary called 'umi_dict'
+    •open UMI file:
+        •for line in file:
+            •strip line of whitespace
+            •add line (UMI) as new key in umi_dict with value of 0
+    •close UMI file
+
+    •return umi_dict
+
+EXAMPLE INPUT:
+CGTAGGC
+TAACGAT
+
+EXAMPLE OUTPUT:
+{'CGTAGGC': 0, 'TAACGAT': 0}
+
+---------------------------------------------
+
+def extract_read_info(line):
+"""Takes a SAM file read and extracts UMI, RNAME (chromosome), POS adjusted for soft clipping, and strand. Puts info into a list"""
+    • initialize empty list called 'read_info'
+    • initialize variable called 'soft_clip' equal to 0
+    • split line by tabs, save output to variable 'split_line'
+    • use regex to extract UMI from QNAME (first index of split_line) and save to variable 'read_umi'
+    • checking bitwise flag, if forward strand:
+        • set variable 'strand' equal to 'forward'
+        • check CIGAR string for soft clipping on left side
+        • if 'S' on left side of CIGAR string:
+            • add value to soft_clip
+    • else if reverse strand:
+        • set variable 'strand' equal to 'reverse'
+        • check CIGAR string for soft clipping on right side
+        • if 'S' on right side of CIGAR string:
+            • add value to soft_clip
+    • subtract soft_clip from POS value and save to variable 'adjusted_position'
+    • append read_umi, RNAME, adjusted_position, and strand to read_info
+
+    • return read_info
+
+EXAMPLE INPUT:
+NS500451:154:HWKTMBGXX:1:11101:24260:1121:CTGTTCAC	0	2	76814284	36	71M	*	0	0	TCCACCACAATCTTACCATCCTTCCTCCAGACCACATCGCGTTCTTTGTTCAACTCACAGCTCAAGTACAA	6AEEEEEEAEEAEEEEAAEEEEEEEEEAEEAEEAAEE<EEEEEEEEEAEEEEEEEAAEEAAAEAEEAEAE/	MD:Z:71	NH:i:1	HI:i:1	NM:i:0	SM:i:36	XQ:i:40	X2:i:0	XO:Z:UU
+    
+EXAMPLE OUTPUT:
+['CTGTTCAC', 2, 76814284, 'forward']
+
+---------------------------------------------
+
+def deduper(sorted_sam):
+"""Takes sorted sam file and outputs: a file with PCR duplicates removed (output_file), a file of removed duplicates (dup_file), and a file of unmatched UMIs (unmatched_file)"""
+    • open sorted sam file
+    • open output files
+    • initialize empty dictionary called 'duplicate_check'
+    • set 'current_chromosome' equal to 1
+    • for line in sam file:
+        • if line starts with '@' (header line):
+            • write line to output_file
+        • else if line does not start with '@':
+            • extract read information using extract_read_info
+            • if chromosome in read_info does not equal current_chromosome:
+                • set current_chromosome equal to new chromosome
+                • reset duplicate_check to empty dictionary
+            • if UMI from read_info is not in umi_dict:
+                •write line to unmatched_file
+            •else:
+                • if read_info is not a key in duplicate_check:
+                    • write line to output_file
+                    • add read_info as key in duplicate_check with value of 0
+                • else if read_info is a key in duplicate_check:
+                    • write line to duplicate output file
+    return NULL
+
+
+            
+
+
+
+
+
+
