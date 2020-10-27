@@ -41,7 +41,7 @@ def get_args():
 ---------------------------------------------
 
 • sort input file using samtools sort
-• set output file path equal to variable named "sorted_sam"
+• set a new input file path equal to variable named "sorted_sam"
 
 ---------------------------------------------
 
