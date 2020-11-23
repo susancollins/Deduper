@@ -87,6 +87,10 @@ def deduper(sam_file):
     #could add a global duplicate counter, or counter per chromosome?
     duplicate_check = {}
     current_chromosome = 1
+    read_counter = 0
+    duplicate_counter = 0
+    unmatched_counter = 0
+    output_counter = 0
     for line in sam_file:
         line = line.strip()
         #check if line is a header line
@@ -94,6 +98,7 @@ def deduper(sam_file):
             dedup_out.write(line + '\n')
         #check if line is empty to avoid errors at end of file
         elif line != '':
+            read_counter += 1
             read_info = extract_read_info(line)
             #check if chromosome matches current chromosome
             if read_info[1] != current_chromosome:
@@ -102,16 +107,19 @@ def deduper(sam_file):
             #check if UMI is known
             if read_info[0] not in umi_dict:
                 no_match_out.write(line + '\n')
+                unmatched_counter += 1
             else:
                 #check if read is a duplicate
                 if read_info not in duplicate_check:
                     dedup_out.write(line + '\n')
                     duplicate_check.setdefault(read_info, 0)
+                    output_counter += 1
                 else:
                     duplicates_out.write(line + '\n')
-    return None
+                    duplicate_counter += 1
+    return read_counter, duplicate_counter, unmatched_counter, output_counter
 
-read_info = deduper(open_sam)
+read_counter, duplicate_counter, unmatched_counter, output_counter = deduper(open_sam)
 
 #close all opened files
 open_sam.close()
@@ -121,4 +129,9 @@ no_match_out.close()
 
 #remove sorted sam file here
 subprocess.call("rm temp.sorted.sam", shell=True)
+
+print("Number of input reads: " + str(read_counter))
+print("Percent PCR duplicates: " + str(duplicate_counter/read_counter*100) + "%")
+print("Unmatched UMIs: " + str(unmatched_counter))
+print("Output deduplicated reads: " + str(output_counter))
 
