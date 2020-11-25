@@ -50,7 +50,6 @@ def reverse_strand(cigar):
     if match:
         for i in match:
             position_adjust += int(i[:-1])
-    print(position_adjust)
     return position_adjust
 
 def extract_read_info(line):
@@ -62,7 +61,6 @@ def extract_read_info(line):
     if ((int(split_line[1]) & 16)) == 16:
         strand = 'reverse'
         adj_pos = position + reverse_strand(split_line[5])
-        print(adj_pos)
     else:
         strand = 'forward'
         match = re.match(r"^(\d+)S", split_line[5])
@@ -86,7 +84,7 @@ def deduper(sam_file):
     '''Takes sorted sam file and outputs: a file with PCR duplicates removed (output_file), a file of removed duplicates (dup_file), and a file of unmatched UMIs (unmatched_file)'''
     #could add a global duplicate counter, or counter per chromosome?
     duplicate_check = {}
-    current_chromosome = 1
+    current_chromosome = ""
     read_counter = 0
     duplicate_counter = 0
     unmatched_counter = 0
@@ -102,7 +100,7 @@ def deduper(sam_file):
             read_info = extract_read_info(line)
             #check if chromosome matches current chromosome
             if read_info[1] != current_chromosome:
-                current_chromosome = read_info[1]
+                current_chromosome = str(read_info[1])
                 duplicate_check = {}
             #check if UMI is known
             if read_info[0] not in umi_dict:
@@ -131,6 +129,7 @@ no_match_out.close()
 subprocess.call("rm temp.sorted.sam", shell=True)
 
 print("Number of input reads: " + str(read_counter))
+print("Number PCR duplicates: " + str(duplicate_counter))
 print("Percent PCR duplicates: " + str(duplicate_counter/read_counter*100) + "%")
 print("Unmatched UMIs: " + str(unmatched_counter))
 print("Output deduplicated reads: " + str(output_counter))
